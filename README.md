@@ -1,18 +1,39 @@
 # Health Insurance Claim First-Response AI Agent
 
-> Evaluation, failure analysis, and deployment economics for an AI health insurance claim agent.
+> A team-built ReAct agent for insurance claim first response, with my work focused on **LLM/Agent evaluation, failure analysis, and deployment economics**.
 
 ## Overview
 
-This project was developed as a team project for NTU's Emerging AI Technologies course.
+This project was developed for NTU's **PE6201 Emerging AI Technologies** course.
 
-The system addresses the **first-response stage of health insurance claims**. Given claim information such as member details, hospital, service date, and line items, a single-agent ReAct workflow dynamically queries relevant records and determines whether to:
+The system handles the **first-response stage of health insurance claims**. Given claim information such as member details, hospital, service date, and line items, a single-agent ReAct workflow retrieves authoritative records and decides whether to:
 
 - approve the claim in principle,
-- request specific missing documentation, or
+- request a specific missing document, or
 - escalate the case to a human assessor.
 
-The project focuses not only on whether the agent can make the correct decision, but also on whether it can do so **reliably, efficiently, and at a reasonable deployment cost**.
+The team chose a single-agent ReAct architecture because the evidence path is not fixed: later observations can change what the agent needs to check next, and different claims require different numbers of turns and tool calls.
+
+## System Workflow
+
+```mermaid
+flowchart TD
+    A[Claim input] --> B[Policy / eligibility check]
+    B -->|Ineligible or invalid| H[Escalate]
+    B --> C[Duplicate check]
+    C --> D[Hospital + coverage checks]
+    D --> E{Pre-authorisation required?}
+    E -->|Yes| F[Check pre-authorisation]
+    E -->|No| G[Evidence complete]
+    F --> G
+    G --> I[Human confirmation gate]
+    I --> J{Final decision}
+    J --> K[Approve in principle]
+    J --> L[Request missing document]
+    J --> M[Escalate]
+```
+
+The final write action remains gated: the agent can investigate autonomously, but a human confirmation step is retained before the structured decision is issued.
 
 ---
 
@@ -20,88 +41,111 @@ The project focuses not only on whether the agent can make the correct decision,
 
 As a team, we worked on:
 
-- designing a single-agent ReAct workflow for claim first-response decisions,
-- implementing tool-based checks for policy, coverage, pre-authorisation, duplicate claims, and other claim conditions,
-- building an evaluation benchmark with normal and difficult / boundary cases,
-- comparing multiple live LLMs under the same evaluation setup,
-- analysing failure modes and guardrail behaviour,
-- measuring token usage, workflow efficiency, and deployment cost.
+- designing the single-agent ReAct workflow,
+- implementing tool-based checks for policy, coverage, pre-authorisation, hospital status, and duplicate claims,
+- building a **50-case evaluation set** with ordinary and negative cases,
+- running a controlled live-model comparison across five model families,
+- analysing workflow failures and guardrail behaviour,
+- measuring turns, tool calls, token usage, latency, and deployment cost,
+- testing the effect of tool-interface and workflow changes.
+
+The final evaluation used **50 cases**: 30 ordinary cases and 20 negative cases. Negative cases were repeated three times, producing **90 trials per model** in the live battery.
 
 ---
 
 ## My Contribution
 
-My work focused primarily on **evaluation and deployment economics**.
+My contribution focused on **evaluation and deployment economics**.
 
 ### 1. Evaluation Design
 
-- Designed **6 boundary / limit cases** within the team's **50-case evaluation benchmark**.
+- Designed **6 boundary / limit cases** within the team's **50-case benchmark**.
 - Focused on difficult policy, coverage, duplicate-claim, and pre-authorisation conditions.
 - Participated in cross-review and live-model evaluation.
-- Used evaluation results to analyse model reliability beyond simple average accuracy.
+- Used evaluation results to analyse reliability beyond average accuracy alone.
 
 ### 2. Model & Failure Analysis
 
-I contributed to evaluating model behaviour across different claim scenarios and analysing where models failed or became unreliable.
+I contributed to analysing where models failed or became operationally unreliable.
 
 The evaluation considered:
 
 - task success,
 - boundary-case behaviour,
-- incorrect escalation or approval,
-- repeated or inefficient tool usage,
+- incorrect approval or escalation,
+- repeated / inefficient tool usage,
 - model consistency,
 - human fallback requirements.
 
-A key lesson from the project was that **pass rate alone is not sufficient**. An agent may still reach a correct final answer while using an inefficient or unstable reasoning path.
+A key takeaway was that **pass rate alone is not sufficient**. One deliberately broken configuration still reached a safe final outcome, but took 15 turns and substantially more tokens; another looked cheaper while producing the wrong decision.
+
+![Failure analysis](assets/failure-analysis.png)
+
+---
+
+## Live Model Evaluation
+
+The team ran the same final prompt, code version, case set, and trial policy across five model families; only the model changed.
+
+The final live battery showed a large spread in reliability, especially on negative cases. DeepSeek V4 Flash achieved the highest trial pass rate at **89/90 (98.9%)**, followed by Gemini 2.5 Flash at **84/90 (93.3%)**.
+
+![Final live-model benchmark](assets/model-benchmark.png)
+
+The comparison reinforced an important AI-product lesson: **ordinary cases can make several models look viable, while negative cases reveal the reliability differences that matter most for deployment**.
 
 ---
 
 ## Deployment Economics
 
-I built a **three-layer AI cost model and token / cost ledger** to connect model performance with real deployment economics.
+I built a **three-layer AI cost model and token / cost ledger** connecting model performance with deployment economics.
 
 The framework considers:
 
 1. **Model inference cost**
-2. **Workflow / token cost**
-3. **Human fallback cost**
+2. **Expected human fallback cost**
+3. **Fixed monitoring / maintenance cost**
 
-I also designed four categories of cost optimisation levers and conducted:
+I also worked on:
 
 - sensitivity analysis,
 - break-even analysis,
 - model quality vs. cost comparison,
 - monthly deployment cost modelling.
 
-Under the assignment assumptions of **8,000 claims per month**, the modeled monthly handling cost decreased from approximately:
+Under the assignment assumptions of **8,000 claims per month** and **US$7.60 human fallback cost per failed claim**, the final model comparison estimated:
 
-**US$44.9K → US$2.3K (-94.8%)**
+- **DeepSeek V4 Flash:** ~US$690/month
+- **Gemini 2.5 Flash:** ~US$4,104/month
+- **GPT-4o-mini:** ~US$20,297/month
+- **Qwen 2.5 7B:** ~US$27,719/month
+- **Llama 3.1 8B:** ~US$38,519/month
 
-when moving from a weaker model configuration to the strongest cost-quality configuration.
+![Expected monthly cost by model](assets/deployment-cost.png)
 
-> Note: These figures are modeled estimates under assignment assumptions, not realised savings from a production insurance company.
+The main economic insight was that **human fallback dominated token cost**. A model with cheaper inference could still be more expensive at the system level if its lower success rate created substantially more human handling.
+
+> **Note:** These are modeled estimates under course-assignment assumptions, not realised savings from a production insurance company.
 
 ---
 
 ## Product Perspective
 
-This project changed how I think about AI product evaluation.
+This project changed how I think about evaluating AI products.
 
-For an AI agent, the question is not simply:
+The question is not simply:
 
 > "Which model is the most accurate?"
 
-A deployment decision also needs to consider:
+A deployment decision also needs to ask:
 
 - What happens when the model fails?
-- How much human review is required?
-- How expensive are repeated tool calls?
-- Are the agent's workflows stable?
-- Does a more expensive model reduce downstream operational cost?
-- Which failures require guardrails rather than better prompting?
+- Which errors require human review?
+- Are the agent's tool-use trajectories stable?
+- Does a cheaper model create more downstream operational cost?
+- Which failures should be fixed with guardrails or interface constraints rather than prompting?
+- Is the system safe enough to automate the final action?
 
-This led me to evaluate the system across:
+I therefore think about AI deployment across:
 
 **Quality × Reliability × Cost × Human Fallback × Deployment Scale**
 
@@ -111,31 +155,28 @@ rather than model accuracy in isolation.
 
 ## Key Takeaways
 
-- Evaluation datasets should deliberately include difficult boundary cases, not only typical user flows.
+- Evaluation datasets should deliberately include difficult boundary and negative cases, not only normal flows.
 - Agent quality should be measured at both the **final-answer level** and the **workflow level**.
-- Token optimisation matters, but human fallback cost can dominate deployment economics.
-- A cheaper model is not always cheaper at the system level if it creates more failures.
-- AI product decisions require balancing model quality, cost, safety, and operational constraints.
+- Instrumentation matters: turns, tool calls, tokens, and guard triggers can expose failures that pass rate misses.
+- Token optimisation is useful, but human fallback can dominate the business case.
+- The cheapest model at the API level is not necessarily the cheapest model at the system level.
+- For this prototype, **human confirmation remains necessary before the final claim decision is written**.
 
 ---
 
 ## Team Demo
 
-A team product demo is available here:
-
 **[Watch the Team Demo](https://www.youtube.com/watch?v=BoABxRL6Eu0)**
 
-My contribution shown in this project focused on **evaluation design, model analysis, AI cost modelling, and deployment economics**.
+This is a team product walkthrough. My contribution focused on **evaluation design, model analysis, AI cost modelling, and deployment economics**.
 
 ---
 
 ## Original Team Repository
 
-This case study documents my individual contribution to a collaborative team project.
+This repository is a personal case study documenting my contribution to a collaborative project.
 
-Original team repository:
-
-**[Lapis0x0/pe6201-claims-agent](https://github.com/Lapis0x0/pe6201-claims-agent)**
+**[Original team repository - Lapis0x0/pe6201-claims-agent](https://github.com/Lapis0x0/pe6201-claims-agent)**
 
 ---
 
