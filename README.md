@@ -51,6 +51,8 @@ As a team, we worked on:
 
 The final evaluation used **50 cases**: 30 ordinary cases and 20 negative cases. Negative cases were repeated three times, producing **90 trials per model** in the live battery.
 
+**Traceable evidence:** [case design and run arithmetic](https://github.com/Lapis0x0/pe6201-claims-agent/blob/main/docs/d4_case_notes.md) · [expected outcomes](https://github.com/Lapis0x0/pe6201-claims-agent/blob/main/expected_outcomes_A.json) · [verification script](https://github.com/Lapis0x0/pe6201-claims-agent/blob/main/scripts/verify_submission.py)
+
 ---
 
 ## My Contribution
@@ -81,6 +83,8 @@ A key takeaway was that **pass rate alone is not sufficient**. One deliberately 
 
 ![Failure analysis](assets/failure-analysis.png)
 
+**Traceable evidence:** [reproduced failures](https://github.com/Lapis0x0/pe6201-claims-agent/blob/main/docs/d7_failures.md) · [judgement-check findings](https://github.com/Lapis0x0/pe6201-claims-agent/blob/main/docs/d4_judgement_checks.md)
+
 ---
 
 ## Live Model Evaluation
@@ -90,6 +94,8 @@ The team ran the same final prompt, code version, case set, and trial policy acr
 The final live battery showed a large spread in reliability, especially on negative cases. DeepSeek V4 Flash achieved the highest trial pass rate at **89/90 (98.9%)**, followed by Gemini 2.5 Flash at **84/90 (93.3%)**.
 
 ![Final live-model benchmark](assets/model-benchmark.png)
+
+**Traceable evidence:** [five-model live battery](https://github.com/Lapis0x0/pe6201-claims-agent/blob/main/docs/d5b_live_battery.md) · [committed result files](https://github.com/Lapis0x0/pe6201-claims-agent/tree/main/results)
 
 The comparison reinforced an important AI-product lesson: **ordinary cases can make several models look viable, while negative cases reveal the reliability differences that matter most for deployment**.
 
@@ -121,6 +127,8 @@ Under the assignment assumptions of **8,000 claims per month** and **US$7.60 hum
 - **Llama 3.1 8B:** ~US$38,519/month
 
 ![Expected monthly cost by model](assets/deployment-cost.png)
+
+**Traceable evidence:** [cost assumptions and method](https://github.com/Lapis0x0/pe6201-claims-agent/blob/main/docs/d6_notes.md) · [reproducible cost model](https://github.com/Lapis0x0/pe6201-claims-agent/blob/main/scripts/d6_cost_model.py)
 
 The main economic insight was that **human fallback dominated token cost**. A model with cheaper inference could still be more expensive at the system level if its lower success rate created substantially more human handling.
 
@@ -192,3 +200,4 @@ This repository is a personal case study documenting my contribution to a collab
 MSc in Artificial Intelligence for Enterprise @ NTU Singapore
 
 [LinkedIn](https://www.linkedin.com/in/liu-weiqi/)
+
